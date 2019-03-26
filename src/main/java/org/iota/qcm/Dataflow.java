@@ -135,7 +135,7 @@ public class Dataflow implements Branch {
   private Function<TritVector[], TritVector[]> createMergeInputBuilder(
       Site site
   ) {
-    int s = site.inputIndices.length;
+    int s = site.inputSites.length;
     int sl = site.size();
     Function<MergeInput, TritVector[]> f = createMergeInputWriter(site);
 
@@ -155,8 +155,8 @@ public class Dataflow implements Branch {
   ) {
     int o = 0;
     Function<MergeInput, MergeInput> f = b -> b;
-    for(int i : site.inputIndices) {
-      f = nextMergeInputWriter(f, i, o);
+    for(Site s : site.inputSites) {
+      f = nextMergeInputWriter(f, s, o);
       o++;
     }
     return finalizeMergeInputWriter(f);
@@ -164,20 +164,20 @@ public class Dataflow implements Branch {
 
   private Function<MergeInput, MergeInput> nextMergeInputWriter(
       Function<MergeInput, MergeInput> f
-      , int i
+      , Site site
       , int o
   ) {
-    int s;
-    if(i < inputLength.length) {
-      s = inputSiteOffset(i);
+    int i1;
+    if(site < inputLength.length) {
+      i1 = inputSiteOffset(site);
       return f.andThen(b -> {
-        b.i[o] = new TritVector(inputLength[i]);
-        b.i[o].shift(b.sites[b.sites.length - 1], s);
+        b.i[o] = new TritVector(inputLength[site]);
+        b.i[o].shift(b.sites[b.sites.length - 1], i1);
         return b;
       });
     }
     return f.andThen(b -> {
-      b.i[o] = b.sites[i];
+      b.i[o] = b.sites[site];
       return b;
     });
   }
@@ -207,7 +207,7 @@ public class Dataflow implements Branch {
   ) {
     int o = 0;
     Function<BranchInput, BranchInput> f = b -> b;
-    for(int i : site.inputIndices) {
+    for(int i : site.inputSites) {
       f = nextBranchInputWriter(f, i, o);
       o += siteLength(i);
     }
@@ -353,7 +353,7 @@ public class Dataflow implements Branch {
       , Site site
       , int i
   ) {
-    //site.length = siteLength(site.inputIndices[0]);
+    //site.length = siteLength(site.inputSites[0]);
     int size = site.size();
     return f.andThen(v -> {
       v[i] = new TritVector(size);

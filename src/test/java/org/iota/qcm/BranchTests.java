@@ -19,10 +19,10 @@ public class BranchTests {
 
     o[0] = new Site();
     o[0].variant = Site.SiteVariant.SITE_VARIANT_MERGE;
-    o[0].inputIndices = new int[]{1};
+    o[0].inputSites = new int[]{1};
     o[1] = new Site();
     o[1].variant = Site.SiteVariant.SITE_VARIANT_MERGE;
-    o[1].inputIndices = new int[]{0};
+    o[1].inputSites = new int[]{0};
 
     b = new Dataflow(ins, new Site[0], new Site[0], o);
     bi = new BranchInstance(0);

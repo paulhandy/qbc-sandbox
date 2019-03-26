@@ -1,6 +1,7 @@
 package org.iota.qcm;
 
 import org.iota.qbc.TritMath;
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
@@ -10,10 +11,9 @@ import static org.iota.qbc.TritMath.TRITS_PER_SHORT;
 
 public class TritBuffer {
   ShortBuffer shortBuffer;
-  byte buf;
+  int buf;
+  byte bufRem;
   int rem;
-  short b;
-  ByteBuffer byteBuffer = ByteBuffer.allocate(TRITS_PER_SHORT);
 
 
   public TritBuffer(short[] shorts, int count) {
@@ -29,7 +29,7 @@ public class TritBuffer {
     TritBuffer tritBuffer = new TritBuffer();
     tritBuffer.shortBuffer = toClone.shortBuffer.duplicate();
     tritBuffer.rem = count;
-    tritBuffer.b = toClone.b;
+    tritBuffer.bufRem = toClone.bufRem;
     tritBuffer.buf = toClone.buf;
     toClone.skip(count);
     return tritBuffer;
@@ -42,35 +42,58 @@ public class TritBuffer {
   }
 
   public void checkRemaining() {
-    if(--rem == 0) {
+    if(rem == 0) {
       throw new BufferOverflowException();
     }
-    if(buf == 0) {
-      nextTritt();
+    if(bufRem == 0) {
+      nextTrits();
     }
   }
 
   public byte nextTrit() {
     checkRemaining();
+    rem--;
+    bufRem--;
+    return (byte) (buf & 0x3);
+  }
 
-    buf--;
-    if (b > TritMath.short_radix[buf] / 2) {
-      b -= TritMath.short_radix[buf];
-      return 1;
-    } else if (b < -(TritMath.short_radix[buf] / 2)) {
-      b += TritMath.short_radix[buf];
-      return -1;
-    } else {
-      return 0;
+  public int nextTrint() {
+    int out, r;
+    out = buf & 0x3FF;
+    if (bufRem < TritMath.TRITS_PER_SHORT) {
+      buf >>= bufRem;
+      rem -= bufRem;
+      r = bufRem;
+      bufRem = 0;
+      nextTrits();
+      out |= (buf & (0x3ff >> ((TRITS_PER_SHORT - r) << 1))) << (r << 1);
+      r = TRITS_PER_SHORT - r;
+      buf >>= r << 1;
+      bufRem -= r;
+    }  else {
+      buf >>= (TritMath.TRITS_PER_SHORT << 1);
     }
+    return out;
+  }
+
+  public long next54() {
+    int i;
+    long out = 0;
+    for(i = 0; i < 54; i += TRITS_PER_SHORT << 1) {
+      out |= nextTrint() << i;
+    }
+    return out;
   }
 
   public void fillBuffer(short[] out, int count) {
     int i, j, r;
     short s;
 
+    throw new NotImplementedException();
+    /*
     for(checkRemaining(), i = 0; i < count; checkRemaining()) {
       out[i] = b;
+      TritMath.bctValue(buf & 0x3ff);
       for(r = buf; r < TritMath.TRITS_PER_SHORT; r++) {
         switch (nextTrit()) {
           case 1: out[i] -= TritMath.short_radix[buf+1];
@@ -80,6 +103,7 @@ public class TritBuffer {
         }
       }
     }
+    */
   }
 
   public int nextPositiveInteger() {
@@ -94,26 +118,10 @@ public class TritBuffer {
     return val;
   }
 
-  private void nextTritt() {
-    b = shortBuffer.get();
-    buf = TritMath.TRITS_PER_SHORT;
-  }
-
   private void nextTrits() {
-    short v = shortBuffer.get();
-    byteBuffer.clear();
-
-    for(int i = TRITS_PER_SHORT; i-- > 0;) {
-      if (v > TritMath.short_radix[i] / 2) {
-        v -= TritMath.short_radix[i];
-        byteBuffer.put((byte)1);
-      } else if (v < -(TritMath.short_radix[i] / 2)) {
-        v += TritMath.short_radix[i];
-        byteBuffer.put((byte)-1);
-      } else {
-        byteBuffer.put((byte)0);
-      }
-    }
+    buf |= TritMath.shortBct(shortBuffer.get()) << (bufRem << 1);
+    rem -= TritMath.TRITS_PER_SHORT;
+    bufRem += TritMath.TRITS_PER_SHORT;
   }
 
   public int nextInteger(int nTrits) {

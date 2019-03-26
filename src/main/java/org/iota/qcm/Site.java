@@ -14,11 +14,12 @@ public class Site {
 
   public SiteVariant variant;
   public Branch branch = null;
-  public int[] inputIndices;
+  public Site[] inputSites;
 
   public Site() { }
 
   public Site(TritBuffer buffer, int nTritsPerIndex, Source source, Map<Hash, Source> refmap) {
+    int[] inputIndices;
     switch (buffer.nextTrit()) {
       case 1:
         variant = SiteVariant.SITE_VARIANT_MERGE;
@@ -47,6 +48,8 @@ public class Site {
       case SITE_VARIANT_KNOT:
         s = branch.inputLength();
         break;
+      case SITE_VARIANT_MERGE:
+        throw new NotImplementedException();
       default:
         throw new NotImplementedException();
     }
